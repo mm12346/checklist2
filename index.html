@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Online Checker">
+
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); width: 100%; max-width: 600px; position: relative; }
+        .close-button { position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
+        .loader-sm { width: 20px; height: 20px; }
+        .loader-lg { width: 48px; height: 48px; }
+        .invisible { visibility: hidden; }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+    <!-- Auth Wrapper with light theme -->
+    <div id="auth-wrapper" class="min-h-screen flex items-center justify-center p-4">
+        <div id="auth-container" class="w-full max-w-md">
+            <!-- Login Screen -->
+            <div id="login-screen">
+                <div class="bg-white p-8 rounded-2xl shadow-xl">
+                    <div class="flex justify-center mb-6">
+                        <svg class="w-16 h-16 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">ลงชื่อเข้าใช้</h2>
+                    <p class="text-center text-slate-500 mb-8">ยินดีต้อนรับกลับมา</p>
+                    <form id="login-form">
+                        <div class="space-y-6">
+                            <div>
+                                <label for="username" class="block text-sm font-medium text-slate-600 mb-1">ชื่อผู้ใช้</label>
+                                <input type="text" id="username" name="username" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-slate-600 mb-1">รหัสผ่าน</label>
+                                <input type="password" id="password" name="password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                        </div>
+                        <div id="login-error" class="mt-4 text-center text-red-500 text-sm h-5"></div>
+                        <button type="submit" class="relative w-full mt-6 px-6 py-4 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition flex items-center justify-center space-x-2 disabled:opacity-50">
+                            <div class="spinner-container hidden absolute inset-0 flex items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            </div>
+                            <div class="content-container flex items-center justify-center">
+                                <span class="text">เข้าสู่ระบบ</span>
+                            </div>
+                        </button>
+                    </form>
+                    <p class="text-center text-sm text-slate-500 mt-6">
+                        ยังไม่มีบัญชี? <a href="#" id="show-register-link" class="font-medium text-indigo-600 hover:text-indigo-500">ลงทะเบียนที่นี่</a>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Register Screen -->
+            <div id="register-screen" class="hidden">
+                 <div class="bg-white p-8 rounded-2xl shadow-xl">
+                     <div class="flex justify-center mb-6">
+                        <svg class="w-16 h-16 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">สร้างบัญชีใหม่</h2>
+                    <p class="text-center text-slate-500 mb-8">เข้าร่วมกับเราเพื่อเริ่มใช้งาน</p>
+                    <form id="register-form">
+                        <div class="space-y-6">
+                            <div>
+                                <label for="register-username" class="block text-sm font-medium text-slate-600 mb-1">ชื่อผู้ใช้</label>
+                                <input type="text" id="register-username" name="username" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label for="register-password" class="block text-sm font-medium text-slate-600 mb-1">รหัสผ่าน</label>
+                                <input type="password" id="register-password" name="password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label for="confirm-password" class="block text-sm font-medium text-slate-600 mb-1">ยืนยันรหัสผ่าน</label>
+                                <input type="password" id="confirm-password" name="confirmPassword" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                        </div>
+                        <div id="register-error" class="mt-4 text-center text-red-500 text-sm h-5"></div>
+                        <div id="register-success" class="mt-4 text-center text-green-600 text-sm h-5"></div>
+                        <button type="submit" class="relative w-full mt-6 px-6 py-4 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-center space-x-2 disabled:opacity-50">
+                            <div class="spinner-container hidden absolute inset-0 flex items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            </div>
+                            <div class="content-container flex items-center justify-center">
+                                <span class="text">ลงทะเบียน</span>
+                            </div>
+                        </button>
+                    </form>
+                     <p class="text-center text-sm text-slate-500 mt-6">
+                        มีบัญชีอยู่แล้ว? <a href="#" id="show-login-link" class="font-medium text-indigo-600 hover:text-indigo-500">กลับไปหน้าล็อกอิน</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="main-app" class="hidden">
+        <header class="sticky top-0 z-10 w-full bg-white/95 backdrop-blur-sm border-b border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="py-4 flex flex-col sm:flex-row flex-wrap gap-4 items-center">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-8 h-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <h1 class="text-xl font-bold text-slate-800">Online Checker</h1>
+                    </div>
+                    <div class="flex-grow w-full sm:w-auto">
+                        <input type="date" id="globalCheckDate" class="w-full px-4 py-2 bg-slate-100 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                    <div class="flex gap-2 sm:gap-3 flex-wrap justify-center">
+                        <button id="refreshButton" class="relative p-3 bg-slate-200 text-slate-700 font-semibold rounded-full shadow-sm hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-center disabled:opacity-50">
+                            <div class="spinner-container hidden absolute inset-0 flex items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            </div>
+                            <div class="content-container">
+                                 <svg class="icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                            </div>
+                        </button>
+                        <button id="settingsButton" class="relative p-3 bg-slate-200 text-slate-700 font-semibold rounded-full shadow-sm hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-center disabled:opacity-50">
+                             <div class="spinner-container hidden absolute inset-0 flex items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                             </div>
+                             <div class="content-container">
+                                <svg class="icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg>
+                             </div>
+                        </button>
+                        <button id="logoutButton" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-xl shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition flex items-center space-x-2">
+                             <svg class="icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+                            <span class="text hidden sm:inline">ออกจากระบบ</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div id="app-container" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeSettingsModal">&times;</span>
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">จัดการการ์ด</h2>
+            <div class="mb-4">
+                <label for="cardSelect" class="block text-sm font-medium text-slate-600 mb-1">เลือกการ์ดที่จะแก้ไข:</label>
+                <select id="cardSelect" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition"></select>
+            </div>
+            <div id="settings-form-fields" class="space-y-4 mb-6 border-t border-b border-slate-200 py-6">
+                <div>
+                    <label for="titleInput" class="block text-sm font-medium text-slate-600 mb-1">ชื่อการ์ด (Title):</label>
+                    <input type="text" id="titleInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                </div>
+                <div>
+                    <label for="sheetIdInput" class="block text-sm font-medium text-slate-600 mb-1">รหัสชีต (Sheet ID):</label>
+                    <input type="text" id="sheetIdInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                </div>
+                <div>
+                    <label for="sheetNameInput" class="block text-sm font-medium text-slate-600 mb-1">ชื่อชีต (Sheet Name):</label>
+                    <input type="text" id="sheetNameInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                </div>
+                <div>
+                    <label for="targetCountInput" class="block text-sm font-medium text-slate-600 mb-1">จำนวนเป้าหมาย (Target Count):</label>
+                    <input type="number" id="targetCountInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 transition">
+                </div>
+            </div>
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-3 pt-4 mt-4 border-t">
+                <div>
+                    <button id="deleteCardBtn" class="w-full sm:w-auto px-5 py-2 bg-red-600 text-white font-semibold rounded-xl shadow hover:bg-red-700 transition flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                        <span class="text">ลบการ์ดที่เลือก</span>
+                    </button>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
+                    <button id="addCardBtn" class="w-full sm:w-auto px-5 py-2 bg-green-500 text-white font-semibold rounded-xl shadow hover:bg-green-600 transition flex items-center justify-center space-x-2">
+                        <svg class="icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span class="text">เพิ่มการ์ดใหม่</span>
+                    </button>
+                    <button id="saveAllSettingsBtn" class="relative w-full sm:w-auto px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl shadow hover:bg-indigo-700 transition flex items-center justify-center space-x-2 disabled:opacity-50">
+                        <div class="spinner-container hidden absolute inset-0 flex items-center justify-center">
+                           <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </div>
+                        <div class="content-container flex items-center justify-center space-x-2">
+                           <svg class="icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                           <span class="text">บันทึกการเปลี่ยนแปลง</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div id="settings-feedback" class="mt-4 text-center text-green-600 text-sm h-5"></div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmationModal" class="modal">
+        <div class="modal-content max-w-sm text-center p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">ยืนยันการลบ</h3>
+            <p class="text-slate-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบการ์ดนี้?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirmDeleteBtn" class="px-6 py-2 bg-red-500 text-white font-semibold rounded-lg shadow hover:bg-red-600 transition">ใช่, ลบเลย</button>
+                <button id="cancelDeleteBtn" class="px-6 py-2 bg-slate-300 text-slate-800 font-semibold rounded-lg shadow hover:bg-slate-400 transition">ไม่, ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwmoUqArgGqoSdnA1OVCJzKjnOgppLxFSbhjh2nAXVoCNnr-dyGV2XfonwE4LHIHtkJ/exec';
+        let cardConfigurations = [];
+        let localCardSettings = [];
+        let loggedInUser = null;
+        const dataCache = {};
+
+        // --- DOM Elements ---
+        const authWrapper = document.getElementById('auth-wrapper'),
+            loginScreen = document.getElementById('login-screen'),
+            loginForm = document.getElementById('login-form'),
+            loginError = document.getElementById('login-error'),
+            showRegisterLink = document.getElementById('show-register-link'),
+            registerScreen = document.getElementById('register-screen'),
+            registerForm = document.getElementById('register-form'),
+            registerError = document.getElementById('register-error'),
+            registerSuccess = document.getElementById('register-success'),
+            showLoginLink = document.getElementById('show-login-link'),
+            mainApp = document.getElementById('main-app'),
+            appContainer = document.getElementById('app-container'),
+            refreshButton = document.getElementById('refreshButton'),
+            settingsButton = document.getElementById('settingsButton'),
+            logoutButton = document.getElementById('logoutButton'),
+            globalCheckDateInput = document.getElementById('globalCheckDate'),
+            settingsModal = document.getElementById('settingsModal'),
+            closeSettingsModalBtn = document.getElementById('closeSettingsModal'),
+            cardSelect = document.getElementById('cardSelect'),
+            settingsFormFields = document.getElementById('settings-form-fields'),
+            titleInput = document.getElementById('titleInput'),
+            sheetIdInput = document.getElementById('sheetIdInput'),
+            sheetNameInput = document.getElementById('sheetNameInput'),
+            targetCountInput = document.getElementById('targetCountInput'),
+            saveAllSettingsBtn = document.getElementById('saveAllSettingsBtn'),
+            addCardBtn = document.getElementById('addCardBtn'),
+            deleteCardBtn = document.getElementById('deleteCardBtn'),
+            settingsFeedback = document.getElementById('settings-feedback'),
+            deleteConfirmationModal = document.getElementById('deleteConfirmationModal'),
+            confirmDeleteBtn = document.getElementById('confirmDeleteBtn'),
+            cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+
+        // --- Utility ---
+        function showFeedback(el, msg, isError = false, duration = 3000) {
+            el.textContent = msg;
+            el.className = `mt-4 text-center text-sm h-5 ${isError ? 'text-red-500' : 'text-green-600'}`;
+            if (duration > 0) setTimeout(() => { el.textContent = ''; }, duration);
+        }
+
+        function toggleButtonSpinner(button, show) {
+            const spinnerContainer = button.querySelector('.spinner-container');
+            const contentContainer = button.querySelector('.content-container');
+
+            if (spinnerContainer) spinnerContainer.classList.toggle('hidden', !show);
+            if (contentContainer) contentContainer.classList.toggle('invisible', show);
+            
+            button.disabled = show;
+        }
+
+
+        async function apiCall(action, payload = {}) {
+            const isGet = action.startsWith('load') || action.startsWith('get');
+            const options = { method: isGet ? 'GET' : 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' } };
+            const url = new URL(SCRIPT_URL);
+            if (isGet) {
+                Object.entries({ action, ...payload }).forEach(([key, value]) => url.searchParams.append(key, value));
+            } else {
+                options.body = JSON.stringify({ action, ...payload });
+            }
+            const res = await fetch(url, options);
+            if (!res.ok) throw new Error(`Network error: ${res.statusText}`);
+            const result = await res.json();
+            if (result.error || result.success === false) throw new Error(result.error || 'Unknown API error');
+            return result;
+        }
+
+        // --- Auth & App Flow ---
+        function switchAuthScreen(showRegister) {
+            loginScreen.style.display = showRegister ? 'none' : 'block';
+            registerScreen.style.display = showRegister ? 'block' : 'none';
+        }
+
+        async function performSuccessfulLogin(username) {
+            loggedInUser = username;
+            localStorage.setItem('loggedInUsername', username); 
+            authWrapper.style.display = 'none';
+            mainApp.style.display = 'block';
+            await initializeMainApp();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const button = e.currentTarget.querySelector('button');
+            showFeedback(loginError, '', false, 0);
+            toggleButtonSpinner(button, true);
+            try {
+                const username = loginForm.username.value;
+                await apiCall('login', { username, password: loginForm.password.value });
+                await performSuccessfulLogin(username);
+            } catch (error) {
+                showFeedback(loginError, error.message, true);
+            } finally {
+                toggleButtonSpinner(button, false);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const button = e.currentTarget.querySelector('button');
+            showFeedback(registerError, '', false, 0);
+            showFeedback(registerSuccess, '', false, 0);
+            const username = registerForm.username.value;
+            const password = registerForm.password.value;
+            if (password !== registerForm.confirmPassword.value) {
+                showFeedback(registerError, 'รหัสผ่านไม่ตรงกัน', true); return;
+            }
+            toggleButtonSpinner(button, true);
+            try {
+                await apiCall('registerUser', { username, password });
+                showFeedback(registerSuccess, 'ลงทะเบียนสำเร็จ! กำลังเข้าสู่ระบบ...', false, 2000);
+                setTimeout(() => performSuccessfulLogin(username), 500);
+            } catch (error) {
+                showFeedback(registerError, error.message, true);
+            } finally {
+                toggleButtonSpinner(button, false);
+            }
+        }
+
+        function handleLogout() {
+            mainApp.style.display = 'none';
+            authWrapper.style.display = 'flex';
+            switchAuthScreen(false);
+            loginForm.reset();
+            appContainer.innerHTML = '';
+            loggedInUser = null;
+            localStorage.removeItem('loggedInUsername'); 
+        }
+
+        async function initializeMainApp() {
+            globalCheckDateInput.value = new Date().toISOString().split('T')[0];
+            await loadConfigurations();
+            renderApp();
+        }
+
+        // --- Data & Configuration ---
+        async function loadConfigurations() {
+            if (!loggedInUser) throw new Error("Not logged in");
+            appContainer.innerHTML = `<div class="loader-lg col-span-full mx-auto animate-spin rounded-full border-4 border-slate-200 border-t-blue-500"></div>`;
+            try {
+                const result = await apiCall('loadSettings', { username: loggedInUser });
+                cardConfigurations = Array.isArray(result.config) ? result.config : [];
+            } catch (error) {
+                appContainer.innerHTML = `<p class="text-red-500 text-center col-span-full">เกิดข้อผิดพลาดในการโหลดการตั้งค่า: ${error.message}</p>`;
+                cardConfigurations = [];
+            }
+        }
+
+        async function checkSheetData(config, dateValue, resultsEl) {
+            if (!config.sheetId || !config.sheetName) return renderError(resultsEl, `กรุณาตั้งค่า Sheet ID และ Sheet Name`);
+            if (!dateValue) { resultsEl.innerHTML = '<p class="text-slate-500">กรุณาเลือกวันที่</p>'; return; }
+            resultsEl.innerHTML = `<div class="loader-sm mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-blue-500"></div>`;
+            const cacheKey = `${config.sheetId}-${dateValue}`;
+            if (dataCache[cacheKey]) {
+                return processData(dataCache[cacheKey], resultsEl, config.targetCount);
+            }
+            try {
+                const filteredRows = await apiCall('getSheetData', { sheetId: config.sheetId, sheetName: config.sheetName, date: dateValue });
+                dataCache[cacheKey] = filteredRows;
+                processData(filteredRows, resultsEl, config.targetCount);
+            } catch (error) {
+                renderError(resultsEl, `เกิดข้อผิดพลาด: ${error.message}`);
+            }
+        }
+
+        function processData(dataRows, resultsEl, targetCount) {
+             const dateString = new Date(globalCheckDateInput.value).toLocaleDateString('th-TH', { dateStyle: 'long' });
+             renderResults(resultsEl, dataRows, dateString, targetCount);
+        }
+
+        // --- UI Rendering ---
+        function renderApp() {
+            appContainer.innerHTML = '';
+            if (cardConfigurations.length === 0) {
+                appContainer.innerHTML = '<p class="text-slate-500 text-center col-span-full">ไม่พบการ์ด กรุณาเพิ่มการ์ดใหม่ในหน้าตั้งค่า</p>';
+            } else {
+                cardConfigurations.forEach((config, index) => createCard(config, index));
+            }
+        }
+
+        function createCard(config, index) {
+            const resultsDivId = `results-${index}`;
+            const cardHtml = `<div id="card-${index}" class="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-xl p-6 md:p-8"><div class="text-center mb-4"><h1 class="text-xl sm:text-2xl font-bold text-slate-800">${config.title}</h1></div><div id="${resultsDivId}" class="min-h-[150px] flex items-center justify-center transition-all"></div></div>`;
+            appContainer.insertAdjacentHTML('beforeend', cardHtml);
+            checkSheetData(config, globalCheckDateInput.value, document.getElementById(resultsDivId));
+        }
+
+        function renderResults(resultsEl, entries, date, targetCount) {
+            resultsEl.innerHTML = '';
+            const COL_USER_IDX = 7, COL_NUMBER_IDX = 9;
+            const uniqueNumbers = new Set(entries.map(entry => entry[COL_NUMBER_IDX]).filter(Boolean));
+            const uniqueUsers = new Set(entries.map(entry => entry[COL_USER_IDX]).filter(Boolean));
+            
+            let statusBlock, detailsBlock;
+            
+            if (entries.length === 0) {
+                 statusBlock = `<div class="flex flex-col items-center justify-center text-center text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-2 text-slate-400"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg><p class="font-semibold text-slate-700">ไม่พบข้อมูลสำหรับวันที่ ${date}</p></div>`;
+                 detailsBlock = '';
+            } else {
+                if (uniqueNumbers.size >= targetCount) {
+                    statusBlock = `<div class="bg-teal-100/50 border border-teal-200/80 text-teal-800 p-4 rounded-xl flex items-center space-x-4"><div class="flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-10 h-10 text-teal-500"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg></div><div class="min-w-0"><p class="font-bold text-lg">ครบแล้ว</p><p class="text-sm">ตรวจครบ ${uniqueNumbers.size} หมายเลขสำหรับวันที่ ${date}</p></div></div>`;
+                } else {
+                    const needed = targetCount - uniqueNumbers.size;
+                    statusBlock = `<div class="bg-amber-100/50 border border-amber-200/80 text-amber-800 p-4 rounded-xl flex items-center space-x-4"><div class="flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-10 h-10 text-amber-500"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg></div><div class="min-w-0"><p class="font-bold text-lg">ยังไม่ครบ (${uniqueNumbers.size}/${targetCount})</p><p class="text-sm">ขาดอีก ${needed} หมายเลขสำหรับวันที่ ${date}</p></div></div>`;
+                }
+                detailsBlock = `<div class="space-y-4 pt-4 text-sm mt-4 border-t border-slate-200"><div class="flex items-start space-x-3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0 text-slate-400 mt-0.5"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.995 9.995 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg><div><p class="font-semibold text-slate-600">ผู้ลงข้อมูล:</p><p class="text-slate-800 break-words">${uniqueUsers.size > 0 ? [...uniqueUsers].join(', ') : 'ไม่พบ'}</p></div></div><div class="flex items-start space-x-3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0 text-slate-400 mt-0.5"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5z" clip-rule="evenodd" /></svg><div><p class="font-semibold text-slate-600">หมายเลขที่ตรวจแล้ว (${uniqueNumbers.size} หมายเลข):</p><p class="text-slate-800 break-words">${uniqueNumbers.size > 0 ? [...uniqueNumbers].join(', ') : 'ไม่พบ'}</p></div></div></div>`;
+            }
+            resultsEl.innerHTML = `<div class="w-full">${statusBlock}${detailsBlock}</div>`;
+        }
+        
+        function renderError(resultsEl, msg) {
+            resultsEl.innerHTML = `<div class="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl flex flex-col items-center justify-center text-center"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg><p class="font-bold">เกิดข้อผิดพลาด</p><p class="text-sm">${msg}</p></div>`;
+        }
+
+        // --- Settings Modal ---
+        async function openSettingsModal() {
+            toggleButtonSpinner(settingsButton, true);
+            await loadConfigurations();
+            toggleButtonSpinner(settingsButton, false);
+
+            localCardSettings = JSON.parse(JSON.stringify(cardConfigurations));
+            populateCardSelect();
+            updateSettingsForm();
+            settingsModal.style.display = 'flex';
+        }
+
+        function closeSettingsModal() { 
+            settingsModal.style.display = 'none';
+        }
+
+        function populateCardSelect() {
+            const currentVal = cardSelect.value;
+            cardSelect.innerHTML = '';
+            if (localCardSettings.length === 0) {
+                cardSelect.innerHTML = '<option value="-1" disabled selected>ไม่มีการ์ดให้เลือก, กด "เพิ่มการ์ดใหม่"</option>';
+            } else {
+                localCardSettings.forEach((config, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = config.title;
+                    cardSelect.appendChild(option);
+                });
+                cardSelect.value = stillExists(currentVal) ? currentVal : 0;
+            }
+            function stillExists(index) { return localCardSettings[index] !== undefined; }
+        }
+
+        function updateSettingsForm() {
+            const index = cardSelect.value;
+            const config = localCardSettings[index];
+            const isCardSelected = config !== undefined;
+
+            settingsFormFields.style.display = isCardSelected ? 'block' : 'none';
+            if (isCardSelected) {
+                titleInput.value = config.title || '';
+                sheetIdInput.value = config.sheetId || '';
+                sheetNameInput.value = config.sheetName || '';
+                targetCountInput.value = config.targetCount || '';
+            }
+            
+            saveAllSettingsBtn.disabled = false;
+            deleteCardBtn.disabled = !isCardSelected;
+        }
+
+        function handleLocalFormChange() {
+            const index = cardSelect.value;
+            if (index < 0) return;
+            localCardSettings[index] = {
+                ...localCardSettings[index],
+                title: titleInput.value.trim(),
+                sheetId: sheetIdInput.value.trim(),
+                sheetName: sheetNameInput.value.trim(),
+                targetCount: parseInt(targetCountInput.value, 10) || 0
+            };
+            const option = cardSelect.options[cardSelect.selectedIndex];
+            if (option) option.textContent = localCardSettings[index].title;
+        }
+        
+        function handleAddCard() {
+            const newCard = { title: `การ์ดใหม่ ${localCardSettings.length + 1}`, sheetId: '', sheetName: '', targetCount: 1, localId: `new_${Date.now()}` };
+            localCardSettings.push(newCard);
+            populateCardSelect();
+            cardSelect.value = localCardSettings.length - 1;
+            updateSettingsForm();
+        }
+
+        function handleDeleteCard() {
+            if (cardSelect.value < 0) return;
+            deleteConfirmationModal.style.display = 'flex';
+        }
+        
+        function confirmDeletionAction() {
+            localCardSettings.splice(cardSelect.value, 1);
+            populateCardSelect();
+            updateSettingsForm();
+            deleteConfirmationModal.style.display = 'none';
+        }
+        
+        async function handleSaveAllSettings() {
+            toggleButtonSpinner(saveAllSettingsBtn, true);
+            showFeedback(settingsFeedback, "กำลังบันทึก...", false, 0);
+            try {
+                await apiCall('saveAllSettings', { username: loggedInUser, config: localCardSettings });
+                cardConfigurations = JSON.parse(JSON.stringify(localCardSettings));
+                showFeedback(settingsFeedback, "บันทึกการเปลี่ยนแปลงทั้งหมดสำเร็จ!");
+                
+                setTimeout(() => {
+                    closeSettingsModal();
+                    renderApp(); 
+                }, 1000); 
+
+            } catch (error) {
+                showFeedback(settingsFeedback, error.message, true);
+            } finally {
+                toggleButtonSpinner(saveAllSettingsBtn, false);
+            }
+        }
+        
+        // --- Event Listeners & PWA Registration ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('loggedInUsername');
+            if (savedUser) {
+                performSuccessfulLogin(savedUser);
+            }
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
+                        .catch(err => console.log('ServiceWorker registration failed: ', err));
+                });
+            }
+
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+            showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); switchAuthScreen(true); });
+            showLoginLink.addEventListener('click', (e) => { e.preventDefault(); switchAuthScreen(false); });
+            globalCheckDateInput.addEventListener('change', renderApp);
+            refreshButton.addEventListener('click', () => {
+                toggleButtonSpinner(refreshButton, true);
+                Object.keys(dataCache).forEach(key => delete dataCache[key]);
+                renderApp();
+                setTimeout(() => toggleButtonSpinner(refreshButton, false), 500);
+            });
+            logoutButton.addEventListener('click', handleLogout);
+            settingsButton.addEventListener('click', openSettingsModal);
+            closeSettingsModalBtn.addEventListener('click', () => {
+                closeSettingsModal();
+                renderApp();
+            });
+            cardSelect.addEventListener('change', updateSettingsForm);
+            [titleInput, sheetIdInput, sheetNameInput, targetCountInput].forEach(el => el.addEventListener('input', handleLocalFormChange));
+            saveAllSettingsBtn.addEventListener('click', handleSaveAllSettings);
+            addCardBtn.addEventListener('click', handleAddCard);
+            deleteCardBtn.addEventListener('click', handleDeleteCard);
+            confirmDeleteBtn.addEventListener('click', confirmDeletionAction);
+            cancelDeleteBtn.addEventListener('click', () => deleteConfirmationModal.style.display = 'none');
+        });
+    </script>
+</body>
+</html>
