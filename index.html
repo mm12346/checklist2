@@ -237,7 +237,7 @@
             text-align: center;
         }
 
-        /* --- Mobile Detail View --- */
+        /* --- Mobile Detail View (REVAMPED) --- */
         .mobile-detail-container {
             display: none; /* Hidden by default, shown via media query */
         }
@@ -254,35 +254,57 @@
             .mobile-day-card {
                 background-color: #ffffff;
                 border: 1px solid #e2e8f0;
-                border-radius: 0.75rem;
+                border-radius: 1rem; /* Increased rounding */
                 padding: 1rem;
-                margin-bottom: 1rem;
-                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+                margin-bottom: 1.25rem; /* Increased margin */
+                box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .mobile-day-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             }
             .mobile-day-card-header {
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
+                flex-direction: column; /* Stack items vertically */
+                align-items: flex-start; /* Align to the left */
+                gap: 0.25rem; /* Space between items */
                 padding-bottom: 0.75rem;
-                border-bottom: 1px solid #e2e8f0;
-                margin-bottom: 0.75rem;
+                border-bottom: 1px solid #f1f5f9;
+                margin-bottom: 1rem;
+            }
+             .mobile-check-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 1rem;
             }
             .mobile-check-item {
+                background-color: #f8fafc; /* Light gray background */
+                border-radius: 0.75rem;
+                padding: 0.75rem;
+                border: 1px solid #e2e8f0;
+            }
+            .mobile-check-item .item-label {
+                color: #475569; /* Slate 600 */
+                font-size: 0.875rem; /* text-sm */
+                margin-bottom: 0.25rem;
+            }
+            .mobile-check-item .item-status {
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
-                padding: 0.5rem 0;
-                border-bottom: 1px solid #f1f5f9;
+                gap: 0.5rem; /* Space between icon and text */
+                font-weight: 600; /* semibold */
+                font-size: 1rem; /* text-base */
             }
-            .mobile-check-item:last-child {
-                border-bottom: none;
+            .mobile-note-section {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid #f1f5f9;
+                background-color: #fffbeb; /* Amber 50 */
+                padding: 0.75rem;
+                border-radius: 0.75rem;
+                border: 1px solid #fef3c7; /* Amber 100 */
             }
-            .status-icon {
-                font-weight: bold;
-                font-size: 1.25rem;
-            }
-            .status-ok { color: #16a34a; } /* Tailwind green-600 */
-            .status-bad { color: #dc2626; } /* Tailwind red-600 */
         }
 
     </style>
@@ -905,14 +927,13 @@
                 displayLabels.forEach(label => { pivotData[label] = {}; });
                 const signatures = {};
                 const notes = {};
-                const checkedNumbersByDay = {}; // <-- NEW: Object to hold checked numbers for LPG card
+                const checkedNumbersByDay = {}; // Object to hold checked numbers for LPG card
 
                 rowsForThisGroup.forEach(row => {
                     try {
                         const day = parseInt(row[1], 10);
                         if (isNaN(day)) return;
                         
-                        // <-- NEW: Populate checked numbers if it's the LPG card
                         if (isLpgCard) {
                             const number = row[9];
                             if (number) {
@@ -975,7 +996,6 @@
                 }
                 tableHtml += `</tr></thead><tbody>`;
 
-                // <-- NEW: Inject the "Checked Number" row for the LPG card
                 if (isLpgCard) {
                     tableHtml += `<tr class="border-b border-slate-300 bg-white">
                                     <td class="border-r-2 border-slate-400"></td>
@@ -1023,15 +1043,17 @@
                 tableHtml += `</tbody></table></div></div>`;
                 finalHtml += tableHtml;
 
-                // --- MOBILE CARD HTML LOGIC ---
-                const mobileNumberDisplay = !isLpgCard ? `<span>หมายเลข: ${groupKey}</span> &bull;` : '';
+                // --- MOBILE CARD HTML LOGIC (REVAMPED) ---
+                const mobileNumberDisplay = !isLpgCard ? `<span class="font-semibold text-slate-700">หมายเลข: ${groupKey}</span>` : '';
                 mobileFinalHtml += `<div class="mobile-detail-container p-2">
-                                        <div class="text-center mb-4 bg-white p-3 rounded-lg shadow">
+                                        <div class="text-center mb-4 bg-white p-3 rounded-lg shadow-sm">
                                             <h2 class="text-lg font-bold text-slate-800">${displayTitle}</h2>
                                             <p class="text-sm text-slate-600 mt-1">สาขา: ${currentSelectedMonthlyUser || 'N/A'}</p>
-                                            <div class="text-xs text-slate-500 mt-2">
+                                            <div class="text-sm text-slate-500 mt-2 flex justify-center items-center gap-x-2">
                                                 ${mobileNumberDisplay}
-                                                <span>เดือน: ${monthName}</span> &bull;
+                                                ${!isLpgCard ? '<span>&bull;</span>' : ''}
+                                                <span>เดือน: ${monthName}</span>
+                                                <span>&bull;</span>
                                                 <span>ปี: ${buddhistYear}</span>
                                             </div>
                                         </div>`;
@@ -1052,12 +1074,14 @@
                         mobileFinalHtml += `
                             <div class="mobile-day-card">
                                 <div class="mobile-day-card-header">
-                                    <h4 class="text-lg font-bold text-indigo-600">วันที่ ${day} ${monthName} ${buddhistYear}</h4>
-                                    <div class="text-sm text-slate-600">
-                                        <span class="font-semibold">ผู้ตรวจ:</span> ${signature}
+                                    <h4 class="text-lg font-bold text-indigo-700">วันที่ ${day} ${monthName} ${buddhistYear}</h4>
+                                    <div class="text-sm text-slate-500">
+                                        <span class="font-medium">ผู้ตรวจ:</span> 
+                                        <span class="font-semibold text-slate-700">${signature}</span>
                                     </div>
                                 </div>
-                                <div>`;
+                                <div class="mobile-check-grid">`;
+                        
                         displayLabels.forEach((label) => {
                             const labelIndex = allCustomLabels.indexOf(label);
                             let status = '';
@@ -1071,29 +1095,44 @@
                                     status = currentStatus;
                                 }
                             }
+                            
                             let statusHtml = '<span class="text-slate-400">-</span>';
                             const statusString = String(status).toLowerCase();
+
                             if (statusString === 'ปกติ') {
-                                statusHtml = `<span class="status-icon status-ok">O</span>`;
+                                statusHtml = `<div class="item-status text-green-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg>
+                                                <span>${status}</span>
+                                              </div>`;
                             } else if (statusString === 'ไม่ปกติ') {
-                                statusHtml = `<span class="status-icon status-bad">X</span>`;
+                                statusHtml = `<div class="item-status text-red-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94l-1.72-1.72z" clip-rule="evenodd" /></svg>
+                                                <span>${status}</span>
+                                              </div>`;
                             } else if (status) {
-                                statusHtml = `<span class="text-sm text-slate-700 font-semibold">${status}</span>`;
+                                statusHtml = `<div class="item-status text-slate-800"><span>${status}</span></div>`;
                             }
+
                             mobileFinalHtml += `
                                 <div class="mobile-check-item">
-                                    <span class="text-slate-700">${label}</span>
+                                    <p class="item-label">${label}</p>
                                     ${statusHtml}
                                 </div>`;
                         });
+
+                        mobileFinalHtml += `</div>`; // Close grid
+
                         if (note) {
                              mobileFinalHtml += `
-                                <div class="mobile-check-item">
-                                    <span class="text-slate-700 font-semibold">หมายเหตุ</span>
-                                    <span class="text-sm text-slate-800 text-right">${note}</span>
+                                <div class="mobile-note-section">
+                                    <div class="flex items-center gap-2 text-amber-800">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
+                                        <span class="font-semibold">หมายเหตุ</span>
+                                    </div>
+                                    <p class="text-sm text-slate-800 mt-2 pl-1">${note.replace(/\n/g, '<br>')}</p>
                                 </div>`;
                         }
-                        mobileFinalHtml += `</div></div>`;
+                        mobileFinalHtml += `</div>`; // Close card
                     }
                 }
                 mobileFinalHtml += `</div>`;
