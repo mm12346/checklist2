@@ -242,6 +242,17 @@
             display: none; /* Hidden by default, shown via media query */
         }
 
+        /* --- Monthly Card Mobile Interaction --- */
+        .monthly-card-content {
+            display: block; /* Shown by default */
+        }
+        .mobile-download-container {
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            min-height: 150px; /* Match the content min-height */
+        }
+
         @media (max-width: 767px) {
             /* Hide desktop table on mobile */
             .printable-table-container {
@@ -304,6 +315,14 @@
                 padding: 0.75rem;
                 border-radius: 0.75rem;
                 border: 1px solid #fef3c7; /* Amber 100 */
+            }
+
+            /* On mobile, when card is clicked, hide content and show download button */
+            .monthly-card.mobile-view-active .monthly-card-content {
+                display: none;
+            }
+            .monthly-card.mobile-view-active .mobile-download-container {
+                display: flex;
             }
         }
 
@@ -825,7 +844,7 @@
         }
         
         // --- Monthly Detail Page Logic ---
-        function openMonthlyDetailPage(config, monthYearValue) {
+        function openMonthlyDetailPage(config, monthYearValue, options = {}) {
             showMonthlyDetailPage();
             const [year, month] = monthYearValue.split('-');
             const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -834,10 +853,10 @@
 
             monthlyDetailPageHeader.textContent = `${config.title} - ${monthName} ${buddhistYear}`;
             monthlyDetailPageContent.innerHTML = `<div class="flex justify-center items-center p-10"><div class="loader-lg mx-auto animate-spin rounded-full border-4 border-slate-200 border-t-amber-500"></div></div>`;
-            fetchMonthlyDetailData(config, monthYearValue);
+            fetchMonthlyDetailData(config, monthYearValue, options);
         }
 
-        async function fetchMonthlyDetailData(config, monthYearValue) {
+        async function fetchMonthlyDetailData(config, monthYearValue, options = {}) {
             if (config.sheetId === 'N/A' || !config.sheetId || !config.sheetName) {
                 monthlyDetailPageContent.innerHTML = `<p class="text-slate-500 text-center p-8">ไม่สามารถแสดงรายละเอียดได้: การตั้งค่าไม่ถูกต้อง</p>`;
                 return;
@@ -847,7 +866,7 @@
             const cacheKey = `detail-${config.sheetId}-${year}-${month}`;
 
             if (monthlyDetailDataCache[cacheKey]) {
-                renderMonthlyDetailTables(monthlyDetailDataCache[cacheKey], config, monthYearValue);
+                renderMonthlyDetailTables(monthlyDetailDataCache[cacheKey], config, monthYearValue, options);
                 return;
             }
 
@@ -855,13 +874,13 @@
                 const result = await apiCall('getMonthlySheetData', { sheetId: config.sheetId, sheetName: config.sheetName, year, month }, 'monthly');
                 const dataToRender = Array.isArray(result?.data) ? result.data : [];
                 monthlyDetailDataCache[cacheKey] = dataToRender;
-                renderMonthlyDetailTables(dataToRender, config, monthYearValue);
+                renderMonthlyDetailTables(dataToRender, config, monthYearValue, options);
             } catch (error) {
                 monthlyDetailPageContent.innerHTML = `<p class="text-red-500 text-center p-8">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${error.message}</p>`;
             }
         }
 
-        async function renderMonthlyDetailTables(dataRows, config, monthYearValue) {
+        async function renderMonthlyDetailTables(dataRows, config, monthYearValue, options = {}) {
             if (!dataRows) {
                  monthlyDetailPageContent.innerHTML = `<div class="text-center py-12 px-4"><svg class="w-16 h-16 mx-auto text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg><h2 class="mt-4 text-2xl font-semibold text-slate-700">เกิดข้อผิดพลาด</h2><p class="mt-2 text-slate-500">ไม่สามารถโหลดข้อมูลได้ (Data is null/undefined)</p></div>`;
                 return;
@@ -1139,9 +1158,14 @@
             });
             
             monthlyDetailPageContent.innerHTML = finalHtml + mobileFinalHtml;
+
+            // At the very end of the function, check if we need to auto-show the preview
+            if (options.autoPreview) {
+                showPrintPreview(options);
+            }
         }
         
-        function showPrintPreview() {
+        function showPrintPreview(options = {}) {
             const contentToPrint = document.getElementById('monthly-detail-page-content').cloneNode(true);
             const headerText = monthlyDetailPageHeader.textContent;
 
@@ -1163,10 +1187,17 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             document.body.classList.add('overflow-hidden');
 
-            document.getElementById('close-preview-btn').addEventListener('click', () => {
-                document.getElementById('print-preview-modal').remove();
+            const closeModalAndNavigate = () => {
+                const modal = document.getElementById('print-preview-modal');
+                if (modal) modal.remove();
                 document.body.classList.remove('overflow-hidden');
-            });
+                // If the preview was opened automatically (on mobile), go back to the main monthly app view
+                if (options.autoPreview) {
+                    showMonthlyApp();
+                }
+            };
+
+            document.getElementById('close-preview-btn').addEventListener('click', closeModalAndNavigate);
 
             document.getElementById('execute-print-btn').addEventListener('click', () => {
                 const printBtn = document.getElementById('execute-print-btn');
@@ -1186,72 +1217,18 @@
                             <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
                             <style>
                                 body { font-family: 'Sarabun', sans-serif; }
-                                
-                                /* --- FIX: Force visibility for printing --- */
-                                .printable-table-container { 
-                                    display: block !important; 
-                                    page-break-before: always; 
-                                }
-                                .mobile-detail-container { 
-                                    display: none !important; 
-                                }
-                                .printable-table-container:first-child { 
-                                    page-break-before: auto; 
-                                }
-
-                                .monthly-detail-table {
-                                    font-size: 8px;
-                                    line-height: 1.1;
-                                    border-collapse: collapse;
-                                    width: 100%;
-                                    table-layout: fixed;
-                                }
-                                .monthly-detail-table th, .monthly-detail-table td {
-                                    padding: 1px 2px;
-                                    border: 1px solid #999;
-                                    word-wrap: break-word;
-                                }
-                                .monthly-detail-table th:nth-child(1),
-                                .monthly-detail-table td:nth-child(1) {
-                                    width: 25px;
-                                }
-                                .monthly-detail-table th:nth-child(2),
-                                .monthly-detail-table td:nth-child(2) {
-                                    width: 150px;
-                                    text-align: left;
-                                }
-                                /* FIX: Ensure date headers are always centered */
-                                .monthly-detail-table thead tr:nth-child(2) th {
-                                    text-align: center;
-                                }
-                                .monthly-detail-table .signature-cell {
-                                    height: 75px;
-                                    min-width: 20px;
-                                    max-width: 20px;
-                                    vertical-align: middle; /* FIX: Align center vertically */
-                                    text-align: center; /* FIX: Align center horizontally */
-                                    font-size: 8px;
-                                    padding: 2px;
-                                }
-                                .monthly-detail-table .vertical-text-cell {
-                                    vertical-align: middle;
-                                    text-align: center;
-                                    padding: 2px;
-                                }
-                                .monthly-detail-table .signature-cell > div,
-                                .monthly-detail-table .vertical-text-cell > div {
-                                    writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block;
-                                }
-                                @media print {
-                                    @page {
-                                        size: A4 landscape;
-                                        margin: 0.5cm;
-                                    }
-                                    body {
-                                        -webkit-print-color-adjust: exact;
-                                        print-color-adjust: exact;
-                                    }
-                                }
+                                .printable-table-container { display: block !important; page-break-before: always; }
+                                .mobile-detail-container { display: none !important; }
+                                .printable-table-container:first-child { page-break-before: auto; }
+                                .monthly-detail-table { font-size: 8px; line-height: 1.1; border-collapse: collapse; width: 100%; table-layout: fixed; }
+                                .monthly-detail-table th, .monthly-detail-table td { padding: 1px 2px; border: 1px solid #999; word-wrap: break-word; }
+                                .monthly-detail-table th:nth-child(1), .monthly-detail-table td:nth-child(1) { width: 25px; }
+                                .monthly-detail-table th:nth-child(2), .monthly-detail-table td:nth-child(2) { width: 150px; text-align: left; }
+                                .monthly-detail-table thead tr:nth-child(2) th { text-align: center; }
+                                .monthly-detail-table .signature-cell { height: 75px; min-width: 20px; max-width: 20px; vertical-align: middle; text-align: center; font-size: 8px; padding: 2px; }
+                                .monthly-detail-table .vertical-text-cell { vertical-align: middle; text-align: center; padding: 2px; }
+                                .monthly-detail-table .signature-cell > div, .monthly-detail-table .vertical-text-cell > div { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; }
+                                @media print { @page { size: A4 landscape; margin: 0.5cm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
                             </style>
                         </head>
                         <body>
@@ -1265,9 +1242,7 @@
                     printWindow.focus();
                     printWindow.print();
                     printWindow.close();
-                    
-                    document.getElementById('print-preview-modal').remove();
-                    document.body.classList.remove('overflow-hidden');
+                    closeModalAndNavigate();
                 };
             });
         }
@@ -1564,6 +1539,14 @@
             }
 
             resultsEl.innerHTML = `<div class="loader-sm mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-amber-500"></div>`;
+            const card = resultsEl.closest('.monthly-card');
+            if (card) {
+                const downloadBtn = card.querySelector('button[id^="monthly-download-btn-"]');
+                if (downloadBtn) {
+                    downloadBtn.disabled = true;
+                }
+            }
+
             const [year, month] = monthYearValue.split('-').map(Number);
             const cacheKey = `${config.sheetId}-${year}-${month}`;
 
@@ -1676,19 +1659,47 @@
 
         function createMonthlyCard(config, index) {
             const resultsDivId = `monthly-results-${index}`;
-            const cardHtml = `<div id="monthly-card-${index}" class="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-xl p-6 md:p-8 cursor-pointer"
+            const downloadBtnId = `monthly-download-btn-${index}`;
+            const cardHtml = `<div id="monthly-card-${index}" class="monthly-card bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-xl p-6 md:p-8 cursor-pointer"
                                 data-config-index="${index}">
                                 <div class="text-center mb-4">
                                     <h1 class="text-xl sm:text-2xl font-bold text-slate-800">${config.title}</h1>
                                 </div>
-                                <div id="${resultsDivId}" class="min-h-[150px] flex items-center justify-center transition-all"></div>
+                                <div class="monthly-card-content">
+                                    <div id="${resultsDivId}" class="min-h-[150px] flex items-center justify-center transition-all"></div>
+                                </div>
+                                <div class="mobile-download-container">
+                                     <button id="${downloadBtnId}" disabled class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        <span>ดาวน์โหลด</span>
+                                    </button>
+                                </div>
                               </div>`;
             monthlyAppContainer.insertAdjacentHTML('beforeend', cardHtml);
 
             const cardElement = document.getElementById(`monthly-card-${index}`);
-            cardElement.addEventListener('click', () => {
+            const downloadButton = document.getElementById(downloadBtnId);
+
+            cardElement.addEventListener('click', (e) => {
+                // Prevent click action if the download button itself was clicked
+                if (e.target.closest('button')) return;
+
                 const selectedConfig = cardConfigurations[parseInt(cardElement.dataset.configIndex)];
-                openMonthlyDetailPage(selectedConfig, monthlyGlobalCheckMonthInput.value);
+                if (window.innerWidth < 768) {
+                    // On mobile, toggle the view
+                    cardElement.classList.toggle('mobile-view-active');
+                } else {
+                    // On desktop, go to detail page
+                    openMonthlyDetailPage(selectedConfig, monthlyGlobalCheckMonthInput.value);
+                }
+            });
+
+            downloadButton.addEventListener('click', () => {
+                const selectedConfig = cardConfigurations[parseInt(cardElement.dataset.configIndex)];
+                // On mobile, clicking download goes to detail and triggers preview
+                openMonthlyDetailPage(selectedConfig, monthlyGlobalCheckMonthInput.value, { autoPreview: true });
             });
 
             checkMonthlySheetData(config, monthlyGlobalCheckMonthInput.value, document.getElementById(resultsDivId));
@@ -1732,6 +1743,14 @@
                     </div>
                 </div>
             `;
+
+            const card = resultsEl.closest('.monthly-card');
+            if (card) {
+                const downloadBtn = card.querySelector('button[id^="monthly-download-btn-"]');
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                }
+            }
         }
         
         function renderError(resultsEl, msg) {
@@ -1957,7 +1976,7 @@
             // Monthly Detail Page Listeners
             monthlyDetailPageBackButton.addEventListener('click', showMonthlyApp);
             monthlyDetailExportButton.addEventListener('click', exportMonthlyDetailToExcel);
-            monthlyDetailPrintButton.addEventListener('click', showPrintPreview);
+            monthlyDetailPrintButton.addEventListener('click', () => showPrintPreview());
         });
     </script>
 </body>
